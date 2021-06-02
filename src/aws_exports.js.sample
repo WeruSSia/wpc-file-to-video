@@ -1,0 +1,6 @@
+export const awsCongif = {
+    userPoolId: '{Your user pool id}',
+    clientId: '{Your client id}',
+    identityPoolId: '{Your identity pool id}',
+    region: '{Your default region}'
+}
