@@ -1,0 +1,22 @@
+{
+  "name": "app-ui",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npx webpack --mode production && echo 'we are ready to deploy'",
+    "release": "aws s3 sync ./dist/ s3://${APP_BUCKET}/ --acl=public-read",
+    "deploy": "npm run build && npm run release"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "webpack": "^5.38.1",
+    "webpack-cli": "^4.7.0"
+  },
+  "dependencies": {
+    "aws-amplify": "^4.0.3",
+    "aws-sdk": "^2.919.0"
+  }
+}
