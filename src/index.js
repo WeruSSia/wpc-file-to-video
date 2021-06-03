@@ -6,7 +6,13 @@ import {
     CognitoUser,
     AuthenticationDetails,
 } from 'amazon-cognito-identity-js';
+import AWS from 'aws-sdk';
+import {
+    CognitoIdentityCredentials
+} from 'aws-sdk';
+import S3 from 'aws-sdk/clients/s3';
 
+AWS.config.region = awsConfig.region;
 const userPool = new CognitoUserPool({
     UserPoolId:  awsConfig.userPoolId,
     ClientId: awsConfig.clientId,
@@ -74,6 +80,15 @@ const login = (loginRequest) => {
     })
 }
 
+const refreshAWSCredentials = (tokenData) => {
+    AWS.config.credentials = new CognitoIdentityCredentials({
+        IdentityPoolId: awsConfig.identityPoolId,
+        Logins: {
+            [awsConfig.credentialsLoginKey]: tokenData.getIdToken().getJwtToken()
+        }
+    });
+}
+
 const getCurrentUser = () => {
     return new Promise((resolve, reject) => {
         const user = userPool.getCurrentUser();
@@ -95,6 +110,41 @@ const getCurrentUser = () => {
             });
         })
     })
+}
+
+const loadLocalStorageCredentials = () => {
+    return new Promise((resolve, reject) => {
+        const user = userPool.getCurrentUser();
+        if(user==null){
+            reject("User not available");
+        }
+        user.getSession((err,session) => {
+            if(err){
+                reject(err);
+            }
+            resolve(session);
+        })
+    })
+}
+
+const listFiles = () => {
+    const s3 = new S3();
+    return new Promise((resolve, reject) => {
+        s3.listObjectsV2({
+            Bucket: awsConfig.bucketName,
+            MaxKeys: 10,
+        }, (err, data) => {
+            if(err){
+                reject(err);
+            }
+            resolve(data.Contents.map(item => {
+                return {
+                    name: item.Key, 
+                    size: item.Size
+                }
+            }));
+        });
+    });
 }
 
 const registerBtn = document.querySelector('.registerAction');
@@ -127,13 +177,25 @@ const loginRequestPayload = {
 };
 loginBtn.addEventListener('click', () => {
     login(loginRequestPayload)
-        .then(result => console.log(result))
+        .then(result => refreshAWSCredentials(result))
         .catch(err => console.log(err))
+});
+
+const listFilesBtn = document.querySelector('button.listFiles');
+listFilesBtn.addEventListener('click', () =>{
+    listFiles()
+        .then(fileList => console.log(fileList))
+        .catch(err => console.log(err))
+    ;
 });
 
 (()=>{
     getCurrentUser()
-        .then(profile => hello(profile.email))
+        .then(profile => hello(`${profile.email}, nice website: ${profile.website}`))
         .catch(err => hello('Guest'))
+    ;
+    loadLocalStorageCredentials()
+        .then(session => refreshAWSCredentials(session))
+        .catch(err => console.log(err))
     ;
 })();

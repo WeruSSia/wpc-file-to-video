@@ -2,5 +2,7 @@ export const awsConfig = {
     userPoolId: '{Your user pool id}',
     clientId: '{Your client id}',
     identityPoolId: '{Your identity pool id}',
-    region: '{Your default region}'
+    region: '{Your default region}',
+    bucketName: '{Your bucket name}',
+    credentialsLoginKey: '{Your credentials login key}'
 }
