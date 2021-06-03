@@ -13,54 +13,88 @@ const userPool = new CognitoUserPool({
 });
 
 const register = (registerRequest) => {
-    const attributeList = [
-        new CognitoUserAttribute({
-            Name: 'website',
-            Value: registerRequest.website,
-        })
-    ];
-    userPool.signUp(registerRequest.email, registerRequest.password, attributeList, null, (err, result) => {
-        if(err){
-            console.log(err);
-            return;
-        }
-        console.log(result);
+    return new Promise((resolve, reject) => {
+        const attributeList = [
+            new CognitoUserAttribute({
+                Name: 'website',
+                Value: registerRequest.website,
+            })
+        ];
+
+        userPool.signUp(
+            registerRequest.email, 
+            registerRequest.password, 
+            attributeList, 
+            null, 
+            (err, result) => {
+                if(err){
+                    reject(err);
+                }
+                resolve(result);
+            }
+        );
     });
 }
 
 const confirmAccount = (confirmRequest) => {
-    const user = new CognitoUser({
-        Username: confirmRequest.email,
-        Pool: userPool,
-    });
-    user.confirmRegistration(confirmRequest.code, true, (err, result) => {
-        if(err){
-            console.log(err);
-            return;
-        }
-        console.log(result);
+    return new Promise((resolve, reject) => {
+        const user = new CognitoUser({
+            Username: confirmRequest.email,
+            Pool: userPool,
+        });
+        user.confirmRegistration(confirmRequest.code, true, (err, result) => {
+            if(err){
+                reject(err);
+            }
+            resolve(result);
+        })
     })
 }
 
 const login = (loginRequest) => {
-    const authDetails = new AuthenticationDetails({
-        Username: loginRequest.email,
-        Password: loginRequest.password,
-    });
+    return new Promise((resolve, reject) => {
+        const authDetails = new AuthenticationDetails({
+            Username: loginRequest.email,
+            Password: loginRequest.password,
+        });
+    
+        const user = new CognitoUser({
+            Username: loginRequest.email,
+            Pool: userPool
+        });
+    
+        user.authenticateUser(authDetails, {
+            onSuccess: (result) => {
+                resolve(result);
+            },
+            onFailure: (err) => {
+                reject(err);
+            }
+        });
+    })
+}
 
-    const user = new CognitoUser({
-        Username: loginRequest.email,
-        Pool: userPool
-    });
-
-    user.authenticateUser(authDetails, {
-        onSuccess: (result) => {
-            console.log(result);
-        },
-        onFailure: (err) => {
-            console.log(err);
+const getCurrentUser = () => {
+    return new Promise((resolve, reject) => {
+        const user = userPool.getCurrentUser();
+        if(user==null){
+            reject("User not available");
         }
-    });
+        user.getSession((err,session) => {
+            if(err){
+                reject(err);
+            }
+            user.getUserAttributes((err, attributes) => {
+                if(err){
+                    reject(err);
+                }
+                const profile = attributes.reduce((profile, item) => {
+                    return {...profile, [item.Name]: item.Value}
+                }, {});
+                resolve(profile);
+            });
+        })
+    })
 }
 
 const registerBtn = document.querySelector('.registerAction');
@@ -70,7 +104,9 @@ const registerRequestPayload = {
     website: "test.pl"
 }
 registerBtn.addEventListener('click', () => {
-    register(registerRequestPayload);
+    register(registerRequestPayload)
+        .then(result => console.log(result))
+        .catch(err => console.log(err))
 });
 
 const confirmAccountBtn = document.querySelector('button.confirmAccount');
@@ -80,6 +116,8 @@ const confirmAccountRequest = {
 };
 confirmAccountBtn.addEventListener('click', () => {
     confirmAccount(confirmAccountRequest)
+        .then(result => console.log(result))
+        .catch(err => console.log(err))
 });
 
 const loginBtn = document.querySelector('button.login');
@@ -88,9 +126,14 @@ const loginRequestPayload = {
     password: registerRequestPayload.password,
 };
 loginBtn.addEventListener('click', () => {
-    login(loginRequestPayload);
+    login(loginRequestPayload)
+        .then(result => console.log(result))
+        .catch(err => console.log(err))
 });
 
 (()=>{
-    hello("Weronika");
+    getCurrentUser()
+        .then(profile => hello(profile.email))
+        .catch(err => hello('Guest'))
+    ;
 })();
