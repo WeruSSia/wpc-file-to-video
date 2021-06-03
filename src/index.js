@@ -147,6 +147,27 @@ const listFiles = () => {
     });
 }
 
+const uploadToS3 = (userId, file, onProgressChange) => {
+    console.log(file);
+    return new Promise((resolve, reject) => {
+        const params = {
+            Body: file,
+            Bucket: awsConfig.bucketName,
+            Key: `uek-krakow/${userId}/moo/boo/zoo/${file.name}`,
+        }
+        const s3 = new S3();
+        s3.putObject(params, (err, data) => {
+            if(err){
+                reject(err);
+            }
+            resolve(data);
+        }).on('httpUploadProgress', (progress) => {
+            const currentProgress = Math.round((progress.loaded / progress.total)*100);
+            onProgressChange(currentProgress);
+        });     
+    });
+}
+
 const registerBtn = document.querySelector('.registerAction');
 const registerRequestPayload = {
     email: "vha85216@cuoly.com",
@@ -187,6 +208,27 @@ listFilesBtn.addEventListener('click', () =>{
         .then(fileList => console.log(fileList))
         .catch(err => console.log(err))
     ;
+});
+
+const uploadBtn = document.querySelector('div.upload .uploadButton');
+uploadBtn.addEventListener('click', () => {
+    const filesInput = document.querySelector('div.upload .uploadInput');
+    const toBeUploadedFiles = [...filesInput.files];
+    const progressBarElement = document.querySelector('div.upload .uploadProgressBar')
+    if(toBeUploadedFiles.length==0){
+        console.log("No files selected");
+        return;
+    }
+    const userId = AWS.config.credentials.identityId;
+    toBeUploadedFiles.forEach((file, index) => {
+        uploadToS3(userId, file, (currentProgress) => {
+            progressBarElement.style.width = `${currentProgress}%`;
+            progressBarElement.textContent = `Uploading... ${currentProgress}%`;
+        })
+            .then(result => console.log(result))
+            .catch(err => console.log(err))
+        ;
+    });
 });
 
 (()=>{
