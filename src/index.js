@@ -11,6 +11,7 @@ import {
     CognitoIdentityCredentials
 } from 'aws-sdk';
 import S3 from 'aws-sdk/clients/s3';
+import {v4 as uuidv4 } from 'uuid';
 
 AWS.config.region = awsConfig.region;
 const userPool = new CognitoUserPool({
@@ -18,6 +19,20 @@ const userPool = new CognitoUserPool({
     ClientId: awsConfig.clientId,
 });
 
+//Animation order
+const photos = [];
+const orderAnimation = (orderAnimationRequest) => {
+    //call api
+    console.log(orderAnimationRequest);
+}
+const addToOrder = (key) => {
+    photos.push(key);
+    console.log('current photos list:')
+    console.log(photos);
+    return key;
+}
+
+//Authorization
 const register = (registerRequest) => {
     return new Promise((resolve, reject) => {
         const attributeList = [
@@ -127,6 +142,7 @@ const loadLocalStorageCredentials = () => {
     })
 }
 
+//Storage
 const listFiles = () => {
     const s3 = new S3();
     return new Promise((resolve, reject) => {
@@ -150,22 +166,54 @@ const listFiles = () => {
 const uploadToS3 = (userId, file, onProgressChange) => {
     console.log(file);
     return new Promise((resolve, reject) => {
+        const key = `uek-krakow/${userId}/${uuidv4()}/${file.name}`;
         const params = {
             Body: file,
             Bucket: awsConfig.bucketName,
-            Key: `uek-krakow/${userId}/moo/boo/zoo/${file.name}`,
+            Key: key,
         }
         const s3 = new S3();
         s3.putObject(params, (err, data) => {
             if(err){
                 reject(err);
             }
-            resolve(data);
+            resolve(key);
         }).on('httpUploadProgress', (progress) => {
             const currentProgress = Math.round((progress.loaded / progress.total)*100);
             onProgressChange(currentProgress);
         });     
     });
+}
+
+// HTML DOM manipulations
+
+const getPreviewUrl = (key) => {
+    const params = {
+        Bucket: awsConfig.bucketName,
+        Key: key
+    }
+    const s3 = new S3();
+    return s3.getSignedUrl('getObject', params);
+}
+
+const createHtmlElFromString = (strTemplate) => {
+    const parent = document.createElement('div');
+    parent.innerHTML = strTemplate.trim();
+
+    return parent.firstChild;
+}
+
+const addToPreviewList = (url) => {
+    const template = `<li><img src="${url}" height="200"/></li>`;
+    const el = createHtmlElFromString(template);
+    const photosPreviewList = document.querySelector('.photosPreview');
+    photosPreviewList.appendChild(el);
+}
+
+const clearUploadState = (inputElement, progressBarElement) => {
+    progressBarElement.style.width = '0%';
+    progressBarElement.textContent = '0%';
+    inputElement.value = "";
 }
 
 const registerBtn = document.querySelector('.registerAction');
@@ -225,9 +273,20 @@ uploadBtn.addEventListener('click', () => {
             progressBarElement.style.width = `${currentProgress}%`;
             progressBarElement.textContent = `Uploading... ${currentProgress}%`;
         })
-            .then(result => console.log(result))
+            .then(key => addToOrder(key))
+            .then(key => getPreviewUrl(key))
+            .then(url => addToPreviewList(url))
+            .then(() => clearUploadState(filesInput, progressBarElement))
             .catch(err => console.log(err))
         ;
+    });
+});
+
+const orderBtn = document.querySelector('button.orderAnimation');
+orderBtn.addEventListener('click', () => {
+    orderAnimation({
+        email: registerRequestPayload.email,
+        photos: [...photos]
     });
 });
 

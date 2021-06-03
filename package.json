@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "aws-amplify": "^4.0.3",
-    "aws-sdk": "^2.919.0"
+    "aws-sdk": "^2.919.0",
+    "uuid": "^8.3.2"
   }
 }
