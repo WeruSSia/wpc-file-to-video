@@ -1,4 +1,4 @@
-export const awsCongif = {
+export const awsConfig = {
     userPoolId: '{Your user pool id}',
     clientId: '{Your client id}',
     identityPoolId: '{Your identity pool id}',
