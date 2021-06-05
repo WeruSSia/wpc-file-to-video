@@ -4,5 +4,6 @@ export const awsConfig = {
     identityPoolId: '{Your identity pool id}',
     region: '{Your default region}',
     bucketName: '{Your bucket name}',
-    credentialsLoginKey: '{Your credentials login key}'
+    credentialsLoginKey: '{Your credentials login key}',
+    apiBaseUrl: '{Your api base url}'
 }

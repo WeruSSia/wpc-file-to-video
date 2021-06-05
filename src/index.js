@@ -22,8 +22,20 @@ const userPool = new CognitoUserPool({
 //Animation order
 const photos = [];
 const orderAnimation = (orderAnimationRequest) => {
-    //call api
-    console.log(orderAnimationRequest);
+    getAccessToken()
+        .then(token => {
+            fetch(
+                `${awsConfig.apiBaseUrl}/orders`, 
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token
+                    },
+                    body: JSON.stringify(orderAnimationRequest)
+                }
+            ).then(response => console.log(response.json()));
+        })
 }
 const addToOrder = (key) => {
     photos.push(key);
@@ -123,6 +135,21 @@ const getCurrentUser = () => {
                 }, {});
                 resolve(profile);
             });
+        })
+    })
+}
+
+const getAccessToken = () => {
+    return new Promise((resolve, reject) => {
+        const user = userPool.getCurrentUser();
+        if(user==null){
+            reject("User not available");
+        }
+        user.getSession((err,session) => {
+            if(err){
+                reject(err);
+            }
+            resolve(session.getIdToken().getJwtToken());
         })
     })
 }
